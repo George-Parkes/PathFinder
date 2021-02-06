@@ -1,15 +1,13 @@
 var canvas = document.getElementById("canvas");
 var context = canvas.getContext("2d");
 
-// <-- CREATE Canvas grid with clickable tiles
+const cellSize = 20;
+const cols = 20;
+const rows = 20;
 
 const squareColor = "yellow";
 const barrierColor = "purple";
 const outlineColor = "black";
-let cellSize = 20;
-const cols = 20;
-const rows = 20;
-let isHolding = false;
 
 // May need function here to switch TRUE selected tool?
 let toolSelected = {
@@ -22,6 +20,10 @@ let toolSelected = {
 canvas.width = cellSize * rows;
 canvas.height = cellSize * cols;
 
+// HARD CODE A and B (temp)
+const squareA = [cols/2, 1];
+const squareB = [cols/2, rows-1];
+
 // Cell CLASS
 class Cell {
   constructor(posY, posX) {
@@ -29,11 +31,18 @@ class Cell {
     this.color = squareColor
     this.barrierColor = barrierColor
     this.isBarrier = false
+
+    if (squareA[0] == posY && squareA[1] == posX) {
+      this.isA = true;
+    } else {
+      this.isA = false   // <-- Best way to set A and B?
+    }
+    this.isB = false
   }
   drawCell() {
     // Draw a cell in the grid
     context.beginPath();
-    context.clearRect(       // < -- do I need this?
+    context.clearRect(       // <-- do I need this?
       this.position.x * cellSize,
       this.position.y * cellSize,
       cellSize, cellSize);
@@ -43,6 +52,8 @@ class Cell {
       cellSize, cellSize);
     if (this.isBarrier) {
       context.fillStyle = this.barrierColor;
+    } else if (this.isA) {
+      context.fillStyle = "blue";
     } else {
       context.fillStyle = this.color;
     }
@@ -56,7 +67,7 @@ class Cell {
   }
 }
 
-// Create GRID
+// <-- Create GRID
 let cellGrid = new Array(cols); // y
 
 for (let i = 0; i < cellGrid.length; i++) {
@@ -67,33 +78,36 @@ for (let i = 0; i < cellGrid.length; i++) {
   }
 }
 
-// onClick CHANGE square color 
+let mX, mY; //position mouseX and mouseY GLOBAL
+let isHolding = false;
 
-if (toolSelected.drawBarrier) {
-  let mX, mY; //position mouseX and mouseY
+function mousePositionOnGrid () { // SETS MOUSE POSITION
+  canvas.onmousemove = function(e) {
+    mX = Math.floor(e.offsetX/cellSize);
+    mY = Math.floor(e.offsetY/cellSize);
+  }
+}
+mousePositionOnGrid();
 
+if (toolSelected.drawBarrier) { // <-- DRAW BARRIER
+  // MOUSE DOWN
   canvas.addEventListener('mousedown', e => {
-    mX = e.offsetX;
-    mY = e.offsetY;
     isHolding = true;
-
-    cellGrid[Math.floor(mY/cellSize)][Math.floor(mX/cellSize)].isBarrier = true;
-    cellGrid[Math.floor(mY/cellSize)][Math.floor(mX/cellSize)].drawCell();
+      cellGrid[mY][mX].isBarrier = true;
+      cellGrid[mY][mX].drawCell();
   });
-
+  // MOUSE MOVE
   canvas.addEventListener('mousemove', e => {
     if (isHolding === true) {
-      cellGrid[Math.floor(mY/cellSize)][Math.floor(mX/cellSize)].isBarrier = true;
-      cellGrid[Math.floor(mY/cellSize)][Math.floor(mX/cellSize)].drawCell();
-      mX = e.offsetX;
-      mY = e.offsetY;
+      cellGrid[mY][mX].isBarrier = true;
+      cellGrid[mY][mX].drawCell();
     }
   });
-
+  // MOUSE UP
   canvas.addEventListener('mouseup', e => {
     if (isHolding === true) {
-      cellGrid[Math.floor(mY/cellSize)][Math.floor(mX/cellSize)].isBarrier = true;
-      cellGrid[Math.floor(mY/cellSize)][Math.floor(mX/cellSize)].drawCell();
+      cellGrid[mY][mX].isBarrier = true;
+      cellGrid[mY][mX].drawCell();
       isHolding = false;
     }
   });
