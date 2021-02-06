@@ -22,8 +22,8 @@ let toolSelected = {
 }
 
 // HARD CODE A and B (TEMP CODE) ////
-const squareA = [cols/2, 1];
-const squareB = [cols/2, rows-2];
+const squareACoordinates = [cols/2, 1];
+const squareBCoordinates = [cols/2, rows-2];
 
 // Cell CLASS CREATOR ////////////////////////
 class Cell {
@@ -32,11 +32,11 @@ class Cell {
     this.color = squareColor
     this.barrierColor = barrierColor
     this.isBarrier = false
-    this.score = 0
+    this.visited = false;
 // Checks if current Cell is A or B and sets true or false
-    squareA[0] == posY && squareA[1] == posX ? 
+    squareACoordinates[0] == posY && squareACoordinates[1] == posX ? 
       this.isA = true : this.isA = false   // <-- Best way to set A and B?
-    squareB[0] == posY && squareB[1] == posX ? 
+    squareBCoordinates[0] == posY && squareBCoordinates[1] == posX ? 
       this.isB = true : this.isB = false
   }
   drawCell() {
@@ -94,7 +94,7 @@ function mousePositionOnCanvas () { // SETS MOUSE POSITION
 }
 mousePositionOnCanvas();
 
-if (toolSelected.drawBarrier) { // <-- DRAW BARRIER
+if (toolSelected.drawBarrier) { // <-- DRAW BARRIER TOOL
   // MOUSE DOWN
   canvas.addEventListener('mousedown', e => {
     isHolding = true;
@@ -118,35 +118,104 @@ if (toolSelected.drawBarrier) { // <-- DRAW BARRIER
   });
 }
 
-// PATH FINDER FUNCTION ////////////
-// from SquareA(or start?)
-  // find direction to SquareB
-  // check if squares in that direction are free
-  // if (square are available | isBarrier == false) {
-    // move to that square
-    // set square to pathSquare
-  // } else {
-    // check other next best square
-    // if that's available move there
-    // else go back along along route to next available square
-  // }
+// PATH FINDER FUNCTIONS ////////////
 
-  // allocate score to each square based on dx/dy when compared with its position/squareB pos
-
-const findPath = () => {
-  // find direction of squareB
-  let currentCell = cellGrid[squareA[0]][squareA[1]];
-  let finalCell = cellGrid[squareB[0]][squareB[1]];
-  let availableSquares = [];
-
+// Get Vector to B
+const getVector = (currentCell, finalCell) => {
   let dx = finalCell.position.x - currentCell.position.x;
   let dy = finalCell.position.y - currentCell.position.y;
 
-  // check surrounding squares
-  for (let i = -1; i <= 1; i++) {
-    currentCell[0 + i, 1].isBarrier;
+  // <-- Add functionality to detect line of sight
+  return [dx, dy];
+}
 
+// checks and returns available cells
+const checkAvailableCells = (currentCell) => {
+  let x = currentCell.position.x, y = currentCell.position.y;
+  let availableCellsArray = [];
+
+  for (let i = -1; i <= 1; i=i+2) { // <-- better way to write this??
+    if (cellGrid[y+i][x].isBarrier == false && // <-- Make sure this doesn't check off the grid
+        cellGrid[y+i][x].visited == false) {
+      availableCellsArray.push(cellGrid[y+i][x]);
+    }
+    if (cellGrid[y][x+i].isBarrier == false &&
+        cellGrid[y][x+i].visited == false) {
+          availableCellsArray.push(cellGrid[y][x+i]);
+    }
+  }
+  return availableCellsArray;
+}
+
+const selectNextCell = (currentCell, vectortoB) => {
+  let availableCells = checkAvailableCells(currentCell);
+
+  if (availableCells.length === 0) {
+
+  } else if (availableCells.length === 1) {
+
+  } else {
+    // returns the cell with the shortest vector
+    let availableCellVectors = [];
+    for (let i = 0; i < availableCells.length; i++) {
+      let vectorsArr = getVector(availableCells[i], squareB);
+      let vector = Math.abs(vectorsArr[0]) + Math.abs(vectorsArr[1]);
+      availableCellVectors.push(vector);
+    }
+    let lowestVector = Math.min(...availableCellVectors);
+    let nextCell = availableCells[availableCellVectors.indexOf(lowestVector)];
+    return nextCell;
   }
 }
 
-findPath();
+function checkIfStackIsEmpty() {
+  if (stack.length == 0) {
+    stack.push(squareA);
+  }
+}
+
+// win check
+function reachedTheEnd(nextCell, squareB) {
+  if (nextCell.position.x == squareB.position.x &&
+      nextCell.position.y == squareB.position.y) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+// INIT VARIABLES FOR PATHFINDER
+let stack = [];
+let squareA = cellGrid[squareACoordinates[0]][squareACoordinates[1]];
+let squareB = cellGrid[squareBCoordinates[0]][squareBCoordinates[1]];
+let currentCell;
+
+checkIfStackIsEmpty(); // <-- checks if at beginning or back to start
+
+const findPath = () => {
+
+  let currentCell = stack[stack.length-1];
+  let vectorToB = getVector(currentCell, squareB);
+  let nextCell = selectNextCell(currentCell, vectorToB);
+
+  // Completion check
+  if (!reachedTheEnd(nextCell, squareB)) {
+    stack.push(nextCell);
+    nextCell.color = pathSquare;
+    nextCell.drawCell();
+  } else {
+    console.log("congratulations!")
+  }
+}
+
+// Search Loop
+let q = 0;
+do {
+  findPath();
+  q++
+} while (q < 20);
+
+/*/ TO DO NEXT
+  - add start button
+  - path finder needs to acknowledge barriers
+*/
