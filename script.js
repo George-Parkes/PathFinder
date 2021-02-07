@@ -1,5 +1,6 @@
 const canvas = document.getElementById("canvas");
 const context = canvas.getContext("2d");
+const startButton = document.getElementById("startButton");
 
 const cellSize = 20;
 const cols = 20;
@@ -151,21 +152,27 @@ const selectNextCell = (currentCell, vectortoB) => {
   let availableCells = checkAvailableCells(currentCell);
 
   if (availableCells.length === 0) {
-
-  } else if (availableCells.length === 1) {
-
-  } else {
-    // returns the cell with the shortest vector
-    let availableCellVectors = [];
-    for (let i = 0; i < availableCells.length; i++) {
-      let vectorsArr = getVector(availableCells[i], squareB);
-      let vector = Math.abs(vectorsArr[0]) + Math.abs(vectorsArr[1]);
-      availableCellVectors.push(vector);
-    }
-    let lowestVector = Math.min(...availableCellVectors);
-    let nextCell = availableCells[availableCellVectors.indexOf(lowestVector)];
-    return nextCell;
+    do { // <-- check for deadends
+      currentCell.color = "yellow";
+      currentCell.drawCell();
+      stack.pop();
+      setCurrentCell();
+      availableCells = checkAvailableCells(currentCell);
+    } while (availableCells.length == 0);
   }
+    // returns the cell with the shortest vector
+  let availableCellVectors = [];
+  for (let i = 0; i < availableCells.length; i++) {
+    let vectorsArr = getVector(availableCells[i], squareB);
+
+    // FIX at the moment finds lowest and treats same, when it should recognise direction
+    let vector = Math.abs(vectorsArr[0]) + Math.abs(vectorsArr[1]); // <-- needs to prioritise here
+    availableCellVectors.push(vector);
+    // FIX
+  }
+  let lowestVector = Math.min(...availableCellVectors);
+  let nextCell = availableCells[availableCellVectors.indexOf(lowestVector)];
+  return nextCell;
 }
 
 function checkIfStackIsEmpty() {
@@ -174,10 +181,15 @@ function checkIfStackIsEmpty() {
   }
 }
 
+function setCurrentCell() {
+  currentCell = stack[stack.length-1];
+}
+
 // win check
 function reachedTheEnd(nextCell, squareB) {
   if (nextCell.position.x == squareB.position.x &&
       nextCell.position.y == squareB.position.y) {
+      mazeComplete = true
     return true;
   } else {
     return false;
@@ -186,6 +198,7 @@ function reachedTheEnd(nextCell, squareB) {
 
 // INIT VARIABLES FOR PATHFINDER
 let stack = [];
+let mazeComplete = false;
 let squareA = cellGrid[squareACoordinates[0]][squareACoordinates[1]];
 let squareB = cellGrid[squareBCoordinates[0]][squareBCoordinates[1]];
 let currentCell;
@@ -194,12 +207,13 @@ checkIfStackIsEmpty(); // <-- checks if at beginning or back to start
 
 const findPath = () => {
 
-  let currentCell = stack[stack.length-1];
+  setCurrentCell();
   let vectorToB = getVector(currentCell, squareB);
   let nextCell = selectNextCell(currentCell, vectorToB);
 
   // Completion check
   if (!reachedTheEnd(nextCell, squareB)) {
+    currentCell.visited = true;
     stack.push(nextCell);
     nextCell.color = pathSquare;
     nextCell.drawCell();
@@ -209,13 +223,17 @@ const findPath = () => {
 }
 
 // Search Loop
-let q = 0;
-do {
-  findPath();
-  q++
-} while (q < 20);
+startButton.addEventListener('mouseup', e => {
+  let q = 0;
+  do {
+    //debugger;
+    findPath();
+    q++
+  } while (!mazeComplete);
+
+});
 
 /*/ TO DO NEXT
-  - add start button
-  - path finder needs to acknowledge barriers
+  - stop the path from snaking on itself
+  - prioritise vector direction when choosing next square
 */
